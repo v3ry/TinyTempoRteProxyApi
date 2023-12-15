@@ -10,17 +10,18 @@ app.use(express.json())
 app.use(cors())
 
 let initScheduledJobs = () => {
-  const scheduledJobFunction = CronJob.schedule("10 0 7 * * *", () => {
-    const date = new Date();
-    console.log(date.toLocaleString());
-    console.log("Execution tache planifié récupération des données");
-    getToken().then(value=>{
-      getTempoInfo(value).then(result=> theResult = result);
-    });  
+  const scheduledJobFunctionAtMidnight = CronJob.schedule("30 0 0 * * *", () => {
+    update()
+  });
+  const scheduledJobFunctionAtMorning = CronJob.schedule("10 0 7 * * *", () => {
+    update()
   });
 
-  scheduledJobFunction.start();
+  scheduledJobFunctionAtMidnight.start();
+  scheduledJobFunctionAtMorning.start();
 }
+
+
 
 initScheduledJobs();
 let theResult;
@@ -124,5 +125,12 @@ function getDate(startDate:boolean): string{
     return dateString;
   }
 }
-
+function update(){
+  const date = new Date();
+  console.log(date.toLocaleString());
+  console.log("Execution tache planifié récupération des données");
+  getToken().then(value=>{
+    getTempoInfo(value).then(result=> theResult = result);
+  });  
+}
 app.listen(3000, () => console.log('ReTempo Api Serveur V1 Started'))
