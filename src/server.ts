@@ -10,7 +10,9 @@ app.use(express.json())
 app.use(cors())
 
 let initScheduledJobs = () => {
-  const scheduledJobFunction = CronJob.schedule("* * 7 * * *", () => {
+  const scheduledJobFunction = CronJob.schedule("10 0 7 * * *", () => {
+    const date = new Date();
+    console.log(date.toLocaleString());
     console.log("Execution tache planifié récupération des données");
     getToken().then(value=>{
       getTempoInfo(value).then(result=> theResult = result);
@@ -70,7 +72,9 @@ async function getTempoInfo(token: string) : Promise<any>{
     const myHeaders = new Headers();
     myHeaders.append('Content-Type', 'application/x-www-form-urlencoded');
     myHeaders.append('Authorization',"Bearer " + token);
-    console.log("token sent : " + token);
+    const date = new Date();
+    console.log('Appel API en cours ...');
+    console.log(date.toLocaleString());
     let response = await fetch('https://digital.iservices.rte-france.com/open_api/tempo_like_supply_contract/v1/tempo_like_calendars?start_date=' + getDate(true) + "&end_date="+ getDate(false), {
         method: 'GET',
         credentials: 'include',
@@ -92,8 +96,10 @@ async function getTempoInfo(token: string) : Promise<any>{
         console.log(response.length);
         if( await response.length == 2){
           response = {today: response[1], tomorow: response[0], hp: 6, hc: 22}
+          console.log("Today : " + response.today + "  Tomorow : " + response.tomorow);
         }else{
           response = {today: response[0], tomorow: 0, hp: 6, hc: 22}
+          console.log("Today : " + response.today);
         }
         
     return await response;
