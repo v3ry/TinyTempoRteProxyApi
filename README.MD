@@ -1,7 +1,7 @@
-#Tiny Tempo Server 
-#By v3ry3D
+# Tiny Tempo Server 
+## By v3ry3D
 
-Bienvenue sur le repo de TinyTempoServer.
+### Bienvenue sur le repo de TinyTempoServer.
 
 Déja le pourquoi?
 
