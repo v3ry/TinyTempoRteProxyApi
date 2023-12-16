@@ -5,19 +5,21 @@ import { privateApiKey } from './secrets'
 
 const app = express()
 const CronJob = require("node-cron");
+const ipfilter = require('express-ipfilter').IpFilter
+ 
+// Blacklist the following IPs
+const ips = ['127.0.0.1']
 
 app.use(express.json())
 app.use(cors())
+ 
+// Create the server
+app.use(ipfilter(ips))
 
 let initScheduledJobs = () => {
-  const scheduledJobFunctionAtMidnight = CronJob.schedule("30 0 0 * * *", () => {
+  const scheduledJobFunctionAtMorning = CronJob.schedule("10 15 6 * * *", () => {
     update()
   });
-  const scheduledJobFunctionAtMorning = CronJob.schedule("10 0 7 * * *", () => {
-    update()
-  });
-
-  scheduledJobFunctionAtMidnight.start();
   scheduledJobFunctionAtMorning.start();
 }
 
