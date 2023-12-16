@@ -6,7 +6,8 @@ import { privateApiKey } from './secrets'
 const app = express()
 const CronJob = require("node-cron");
 const ipfilter = require('express-ipfilter').IpFilter
- 
+let theResult;
+
 // Blacklist the following IPs
 const ips = ['127.0.0.1']
 
@@ -17,16 +18,21 @@ app.use(cors())
 app.use(ipfilter(ips))
 
 let initScheduledJobs = () => {
-  const scheduledJobFunctionAtMorning = CronJob.schedule("10 15 6 * * *", () => {
+  const scheduledJobFunctionAtMorning = CronJob.schedule("10 0 6 * * *", () => {
     update()
   });
   scheduledJobFunctionAtMorning.start();
+
+  const scheduledJobFunctionAtMidnight = CronJob.schedule("10 0 23 * * *", () => {
+    console.log("object");
+    theResult = {today: theResult[1], tomorow: 0, hp: 6, hc: 22};
+  });
+  scheduledJobFunctionAtMidnight.start();
 }
 
 
 
 initScheduledJobs();
-let theResult;
 
 app.set('trust proxy', true)
 
@@ -135,4 +141,4 @@ function update(){
     getTempoInfo(value).then(result=> theResult = result);
   });  
 }
-app.listen(3000, () => console.log('ReTempo Api Serveur V1 Started'))
+app.listen(3000, () => console.log('ReTempo Api Serveur V1.1 Started'))
