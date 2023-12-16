@@ -23,7 +23,7 @@ let initScheduledJobs = () => {
   });
   scheduledJobFunctionAtMorning.start();
 
-  const scheduledJobFunctionAtMidnight = CronJob.schedule("20 0 0 * * *", () => {
+  const scheduledJobFunctionAtMidnight = CronJob.schedule("20 21 0 * * *", () => {
     console.log("theResult " + theResult);
     theResult = {today: theResult.tomorow, tomorow: 0, hp: 6, hc: 22};
   });
