@@ -6,7 +6,7 @@ import { privateApiKey } from './secrets'
 const app = express()
 const CronJob = require("node-cron");
 const ipfilter = require('express-ipfilter').IpFilter
-let theResult;
+let theResult = {today: 0, tomorow: 0, hp: 6, hc: 22};
 
 // Blacklist the following IPs
 const ips = ['127.0.0.1']
@@ -15,7 +15,7 @@ app.use(express.json())
 app.use(cors())
  
 // Create the server
-app.use(ipfilter(ips))
+// app.use(ipfilter(ips))
 
 let initScheduledJobs = () => {
   const scheduledJobFunctionAtMorning = CronJob.schedule("10 0 6 * * *", () => {
@@ -39,10 +39,7 @@ app.set('trust proxy', true)
 app.get('/', (req, res) => res.send('🏠 Tempo Service By v3ry3D 🏠'))
 app.get('/tempo', (req, res) => getTempo(req,res))
 
-
-getToken().then(value=>{
-  getTempoInfo(value).then(result=> theResult = result);
-});  
+update();
 
 async function getTempo(req,res){
   var ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress 
@@ -66,6 +63,8 @@ async function getToken() : Promise<any>{
       return await response;
   }catch (error) {
     if (error instanceof Error) {
+      console.log(error);
+      getToken()
       console.log('error message: ', error.message);
       return error.message;
     } else {
@@ -92,6 +91,7 @@ async function getTempoInfo(token: string) : Promise<any>{
         .then(response=>response.json())
         .then((rese:any)=> rese.tempo_like_calendars.values.map(val=> val.value))
         .then(value=> value.map(toto=> {
+          console.log(value);
           if(toto == "BLUE"){
               return 1
             }else if(toto == "WHITE"){
@@ -114,6 +114,7 @@ async function getTempoInfo(token: string) : Promise<any>{
     return await response;
   }catch (error) {
     if (error instanceof Error) {
+      console.log("error : " + error);
       console.log('error message: ', error.message);
       return error.message;
     } else {
@@ -138,7 +139,18 @@ function update(){
   console.log(date.toLocaleString());
   console.log("Execution tache planifié récupération des données");
   getToken().then(value=>{
-    getTempoInfo(value).then(result=> theResult = result);
+    console.log("the token info is : " + value);
+    getTempoInfo(value).then(result=>{ 
+      theResult = result
+      if (theResult.today > 0 && theResult.today < 4 ){
+        console.log("Valeur d'api correcte");
+      }else{
+        console.log("Valeur d'api incorrecte");
+        update()
+      }
+    });
+
   });  
+
 }
-app.listen(3000, () => console.log('ReTempo Api Serveur V1.1 Started'))
+app.listen(3000, () => console.log('ReTempo Api Serveur V1.2 Started'))
