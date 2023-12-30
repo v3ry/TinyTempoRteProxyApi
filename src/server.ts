@@ -83,6 +83,7 @@ async function getTempoInfo(token: string) : Promise<any>{
     const date = new Date();
     console.log('Appel API en cours ...');
     console.log(date.toLocaleString());
+    console.log('https://digital.iservices.rte-france.com/open_api/tempo_like_supply_contract/v1/tempo_like_calendars?start_date=' + getDate(true) + "&end_date="+ getDate(false));
     let response = await fetch('https://digital.iservices.rte-france.com/open_api/tempo_like_supply_contract/v1/tempo_like_calendars?start_date=' + getDate(true) + "&end_date="+ getDate(false), {
         method: 'GET',
         credentials: 'include',
@@ -130,7 +131,9 @@ function getDate(startDate:boolean): string{
     dateString = date.getFullYear() + "-" + (date.getMonth()+1)+ "-" + date.getDate() + "T00:00:00%2B02:00"
     return dateString;
   }else{
-    dateString = date.getFullYear() + "-" + (date.getMonth()+1)+ "-" + (date.getDate()+2) + "T01:00:00%2B02:00"
+    let current = new Date();
+    let followingDay = new Date(current.getTime() + 172800000);
+    dateString = followingDay.getFullYear() + "-" + (followingDay.getMonth()+1)+ "-" + (followingDay.getDate()) + "T01:00:00%2B02:00"
     return dateString;
   }
 }
@@ -142,6 +145,7 @@ function update(){
     console.log("the token info is : " + value);
     getTempoInfo(value).then(result=>{ 
       theResult = result
+      console.log(theResult);
       if (theResult.today > 0 && theResult.today < 4 ){
         console.log("Valeur d'api correcte");
       }else{
