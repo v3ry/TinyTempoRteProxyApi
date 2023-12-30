@@ -83,7 +83,6 @@ async function getTempoInfo(token: string) : Promise<any>{
     const date = new Date();
     console.log('Appel API en cours ...');
     console.log(date.toLocaleString());
-    console.log('https://digital.iservices.rte-france.com/open_api/tempo_like_supply_contract/v1/tempo_like_calendars?start_date=' + getDate(true) + "&end_date="+ getDate(false));
     let response = await fetch('https://digital.iservices.rte-france.com/open_api/tempo_like_supply_contract/v1/tempo_like_calendars?start_date=' + getDate(true) + "&end_date="+ getDate(false), {
         method: 'GET',
         credentials: 'include',
@@ -92,7 +91,6 @@ async function getTempoInfo(token: string) : Promise<any>{
         .then(response=>response.json())
         .then((rese:any)=> rese.tempo_like_calendars.values.map(val=> val.value))
         .then(value=> value.map(toto=> {
-          console.log(value);
           if(toto == "BLUE"){
               return 1
             }else if(toto == "WHITE"){
