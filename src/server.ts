@@ -5,7 +5,6 @@ import { privateApiKey } from './secrets'
 
 const app = express()
 const CronJob = require("node-cron");
-const ipfilter = require('express-ipfilter').IpFilter
 let theResult = {today: 0, tomorow: 0, hp: 6, hc: 22};
 
 // Blacklist the following IPs
@@ -15,7 +14,6 @@ app.use(express.json())
 app.use(cors())
  
 // Create the server
-// app.use(ipfilter(ips))
 
 let initScheduledJobs = () => {
   const scheduledJobFunctionAtMorning = CronJob.schedule("10 0 6 * * *", () => {
@@ -89,7 +87,14 @@ async function getTempoInfo(token: string) : Promise<any>{
         headers: myHeaders,
         })
         .then(response=>response.json())
-        .then((rese:any)=> rese.tempo_like_calendars.values.map(val=> val.value))
+        .then(response => { console.log(response); return response; })
+        .then((rese: any) => {
+          if (rese && rese.tempo_like_calendars && rese.tempo_like_calendars.values) {
+              return rese.tempo_like_calendars.values.map(val => val.value);
+          } else {
+              throw new Error("Invalid response structure");
+          }
+      })
         .then(value=> value.map(toto=> {
           if(toto == "BLUE"){
               return 1
@@ -125,34 +130,50 @@ async function getTempoInfo(token: string) : Promise<any>{
 function getDate(startDate:boolean): string{
   let date = new Date();
   let dateString;
+  let MS_DELAY = 172800000
+  if(!startDate && date.getHours() < 6){
+    MS_DELAY = 86400000;
+  }
   if(startDate){
     dateString = date.getFullYear() + "-" + (date.getMonth()+1)+ "-" + date.getDate() + "T00:00:00%2B02:00"
+    console.log("start date : " + dateString);
     return dateString;
   }else{
     let current = new Date();
-    let followingDay = new Date(current.getTime() + 172800000);
-    dateString = followingDay.getFullYear() + "-" + (followingDay.getMonth()+1)+ "-" + (followingDay.getDate()) + "T01:00:00%2B02:00"
+    let followingDay = new Date(current.getTime() + MS_DELAY);
+    dateString = followingDay.getFullYear() + "-" + (followingDay.getMonth()+1)+ "-" + (followingDay.getDate()) + "T00:00:00%2B02:00"
+    console.log("End date : " + dateString);
     return dateString;
   }
 }
-function update(){
+
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function update(): Promise<void> {
   const date = new Date();
   console.log(date.toLocaleString());
   console.log("Execution tache planifié récupération des données");
-  getToken().then(value=>{
-    console.log("the token info is : " + value);
-    getTempoInfo(value).then(result=>{ 
-      theResult = result
-      console.log(theResult);
-      if (theResult.today > 0 && theResult.today < 4 ){
-        console.log("Valeur d'api correcte");
-      }else{
-        console.log("Valeur d'api incorrecte");
-        update()
-      }
-    });
 
-  });  
+  try {
+    const token = await getToken();
+    console.log("The token info is:", token);
 
+    const result = await getTempoInfo(token);
+    theResult = result;
+    console.log(theResult);
+
+    if (theResult.today > 0 && theResult.today < 4) {
+      console.log("Valeur d'api correcte");
+    } else {
+      console.log("Valeur d'api incorrecte");
+      await delay(5000); // Ajoute un délai de 5 secondes avant de rappeler update
+      update();
+    }
+  } catch (error) {
+    console.error("Failed to update:", error);
+  }
 }
-app.listen(3000, () => console.log('ReTempo Api Serveur V1.2 Started'))
+
+app.listen(3000, () => console.log('ReTempo Api Serveur V1.3 Started'))
