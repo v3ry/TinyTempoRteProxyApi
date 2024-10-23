@@ -41,7 +41,7 @@ update();
 
 async function getTempo(req,res){
   var ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress 
-  console.debug(new Date().toLocaleString() +"api request by : " + ip);
+  console.debug(new Date().toLocaleString('fr-FR', { hour12: false }) +" api request by : " + ip);
  res.send(theResult)
 }
 
