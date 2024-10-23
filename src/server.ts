@@ -57,6 +57,7 @@ async function getToken() : Promise<any>{
           headers: myHeaders,
           })
           .then(response=>response.json())
+          .then(response => { console.log(response); return response; })
           .then((rese:any)=> rese["access_token"])
       return await response;
   }catch (error) {
@@ -129,6 +130,7 @@ async function getTempoInfo(token: string) : Promise<any>{
 }
 
 async function checkAndUpdate(response: any): Promise<void> {
+  console.log(response);
   if (await response.length == 2) {
     response = { today: response[1], tomorow: response[0], hp: 6, hc: 22 };
     console.log("Today : " + response.today + "  Tomorow : " + response.tomorow);
@@ -138,8 +140,8 @@ async function checkAndUpdate(response: any): Promise<void> {
 
     const currentHour = new Date().getHours();
     if (response.tomorow === 0 && currentHour >= 6 && currentHour < 7) {
-      console.log("Retrying in 5 seconds...");
-      await delay(5000);
+      console.log("Retrying in 30 seconds...");
+      await delay(30000);
       await update();
     }
   }
