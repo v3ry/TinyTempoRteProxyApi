@@ -16,16 +16,16 @@ app.use(cors())
 // Create the server
 
 let initScheduledJobs = () => {
-  const scheduledJobFunctionAtMorning = CronJob.schedule("10 0 6 * * *", () => {
+  const scheduledJobFunctionAtMorning = CronJob.schedule("10 5 6 * * *", () => {
     update()
   });
   scheduledJobFunctionAtMorning.start();
 
-  const scheduledJobFunctionAtMidnight = CronJob.schedule("20 0 23 * * *", () => {
-    console.log("theResult " + theResult);
-    theResult = {today: theResult.tomorow, tomorow: 0, hp: 6, hc: 22};
-  });
-  scheduledJobFunctionAtMidnight.start();
+  // const scheduledJobFunctionAtMidnight = CronJob.schedule("20 0 23 * * *", () => {
+  //   console.log("theResult " + theResult);
+  //   theResult = {today: theResult.tomorow, tomorow: 0, hp: 6, hc: 22};
+  // });
+  // scheduledJobFunctionAtMidnight.start();
 }
 
 
@@ -41,7 +41,7 @@ update();
 
 async function getTempo(req,res){
   var ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress 
-  console.debug("api request by : " + ip);
+  console.debug(new Date().toLocaleString() +"api request by : " + ip);
  res.send(theResult)
 }
 
@@ -127,6 +127,23 @@ async function getTempoInfo(token: string) : Promise<any>{
     }
   }
 }
+
+async function checkAndUpdate(response: any): Promise<void> {
+  if (await response.length == 2) {
+    response = { today: response[1], tomorow: response[0], hp: 6, hc: 22 };
+    console.log("Today : " + response.today + "  Tomorow : " + response.tomorow);
+  } else {
+    response = { today: response[0], tomorow: 0, hp: 6, hc: 22 };
+    console.log("Today : " + response.today);
+
+    const currentHour = new Date().getHours();
+    if (response.tomorow === 0 && currentHour >= 6 && currentHour < 7) {
+      console.log("Retrying in 5 seconds...");
+      await delay(5000);
+      await update();
+    }
+  }
+}
 function getDate(startDate:boolean): string{
   let date = new Date();
   let dateString;
@@ -162,7 +179,7 @@ async function update(): Promise<void> {
 
     const result = await getTempoInfo(token);
     theResult = result;
-    console.log(theResult);
+    await checkAndUpdate(result);
 
     if (theResult.today > 0 && theResult.today < 4) {
       console.log("Valeur d'api correcte");
