@@ -21,11 +21,11 @@ let initScheduledJobs = () => {
   });
   scheduledJobFunctionAtMorning.start();
 
-  // const scheduledJobFunctionAtMidnight = CronJob.schedule("20 0 23 * * *", () => {
-  //   console.log("theResult " + theResult);
-  //   theResult = {today: theResult.tomorow, tomorow: 0, hp: 6, hc: 22};
-  // });
-  // scheduledJobFunctionAtMidnight.start();
+  const scheduledJobFunctionAtMidnight = CronJob.schedule("20 0 23 * * *", () => {
+    console.log("theResult " + theResult);
+    theResult = {today: theResult.tomorow, tomorow: 0, hp: 6, hc: 22};
+  });
+  scheduledJobFunctionAtMidnight.start();
 }
 
 
@@ -130,21 +130,14 @@ async function getTempoInfo(token: string) : Promise<any>{
 }
 
 async function checkAndUpdate(response: any): Promise<void> {
-  console.log(response);
-  if (await response.length == 2) {
-    response = { today: response[1], tomorow: response[0], hp: 6, hc: 22 };
-    console.log("Today : " + response.today + "  Tomorow : " + response.tomorow);
-  } else {
-    response = { today: response[0], tomorow: 0, hp: 6, hc: 22 };
-    console.log("Today : " + response.today);
-
+  console.log("response " ,response);
+  console.dir("response tomorow " + response.tomorow);
     const currentHour = new Date().getHours();
     if (response.tomorow === 0 && currentHour >= 6 && currentHour < 7) {
       console.log("Retrying in 30 seconds...");
-      await delay(30000);
+      await delay(10000);
       await update();
     }
-  }
 }
 function getDate(startDate:boolean): string{
   let date = new Date();
