@@ -1,5 +1,5 @@
 import cors from 'cors'
-import express, { json } from 'express'
+import express, { json, Request, Response } from 'express'
 import { get } from 'http'
 import { privateApiKey } from './secrets'
 
@@ -34,7 +34,7 @@ initScheduledJobs();
 
 app.set('trust proxy', true)
 
-app.get('/', (req, res) => res.send('🏠 Tempo Service By v3ry3D 🏠'))
+app.get('/', (req: Request, res: Response) => { res.send('🏠 Tempo Service By v3ry3D 🏠')})
 app.get('/tempo', (req, res) => getTempo(req,res))
 
 update();
@@ -79,7 +79,7 @@ async function getTempoInfo(token: string) : Promise<any>{
     const myHeaders = new Headers();
     myHeaders.append('Content-Type', 'application/x-www-form-urlencoded');
     myHeaders.append('Authorization',"Bearer " + token);
-    const date = new Date();
+    const date = new Date().toLocaleString('fr-FR', { hour12: false });
     console.log('Appel API en cours ...');
     console.log(date.toLocaleString());
     let response = await fetch('https://digital.iservices.rte-france.com/open_api/tempo_like_supply_contract/v1/tempo_like_calendars?start_date=' + getDate(true) + "&end_date="+ getDate(false), {
@@ -135,7 +135,7 @@ async function checkAndUpdate(response: any): Promise<void> {
     const currentHour = new Date().getHours();
     if (response.tomorow === 0 && currentHour >= 6 && currentHour < 7) {
       console.log("Retrying in 30 seconds...");
-      await delay(10000);
+      await delay(30000);
       await update();
     }
 }
@@ -153,7 +153,8 @@ function getDate(startDate:boolean): string{
   }else{
     let current = new Date();
     let followingDay = new Date(current.getTime() + MS_DELAY);
-    dateString = followingDay.getFullYear() + "-" + (followingDay.getMonth()+1)+ "-" + (followingDay.getDate()) + "T00:00:00%2B02:00"
+    //TODO: Fix changement d'heure
+    dateString = followingDay.getFullYear() + "-" + (followingDay.getMonth()+1)+ "-" + (followingDay.getDate()) + "T00:00:00%2B01:00&fallback_status=true"
     console.log("End date : " + dateString);
     return dateString;
   }
