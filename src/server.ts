@@ -146,15 +146,23 @@ function getDate(startDate:boolean): string{
   if(!startDate && date.getHours() < 6){
     MS_DELAY = 86400000;
   }
+
+  const currentOffset = date.getTimezoneOffset();
+  const followingDay = new Date(date.getTime() + MS_DELAY);
+  const followingDayOffset = followingDay.getTimezoneOffset();
+
+  const timezoneOffset = currentOffset === -120 ? "02:00" : "01:00";
+  const followingDayTimezoneOffset = followingDayOffset === -120 ? "02:00" : "01:00";
+  console.log("today offser : " + timezoneOffset + "  tomorow offset : " + followingDayTimezoneOffset);
+
   if(startDate){
-    dateString = date.getFullYear() + "-" + (date.getMonth()+1)+ "-" + date.getDate() + "T00:00:00%2B02:00"
+    dateString = date.getFullYear() + "-" + (date.getMonth()+1)+ "-" + date.getDate() + "T00:00:00%2B" + timezoneOffset
     console.log("start date : " + dateString);
     return dateString;
   }else{
     let current = new Date();
-    let followingDay = new Date(current.getTime() + MS_DELAY);
-    //TODO: Fix changement d'heure
-    dateString = followingDay.getFullYear() + "-" + (followingDay.getMonth()+1)+ "-" + (followingDay.getDate()) + "T00:00:00%2B01:00&fallback_status=true"
+    //TODO: Fix changement
+    dateString = followingDay.getFullYear() + "-" + (followingDay.getMonth()+1)+ "-" + (followingDay.getDate()) + "T00:00:00%2B" + followingDayTimezoneOffset
     console.log("End date : " + dateString);
     return dateString;
   }
