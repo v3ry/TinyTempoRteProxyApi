@@ -17,6 +17,7 @@ app.use(cors())
 
 let initScheduledJobs = () => {
   const scheduledJobFunctionAtMorning = CronJob.schedule("10 5 6 * * *", () => {
+    console.log("Execution tache planifié récupération des données");
     update()
   });
   scheduledJobFunctionAtMorning.start();
@@ -136,7 +137,7 @@ async function checkAndUpdate(response: any): Promise<void> {
     if (response.tomorow === 0 && currentHour >= 6 && currentHour < 7) {
       console.log("Retrying in 30 seconds...");
       await delay(30000);
-      await update();
+      update();
     }
 }
 function getDate(startDate:boolean): string{
@@ -172,10 +173,18 @@ function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+let isUpdating = false;
+
 async function update(): Promise<void> {
+
+  if (isUpdating) {
+    console.log("Update already in progress, skipping...");
+    return;
+  }
+
   const date = new Date();
-  console.log(date.toLocaleString());
-  console.log("Execution tache planifié récupération des données");
+  console.log(date.toLocaleString('fr-FR', { hour12: false }));
+  isUpdating = true;
 
   try {
     const token = await getToken();
@@ -189,11 +198,13 @@ async function update(): Promise<void> {
       console.log("Valeur d'api correcte");
     } else {
       console.log("Valeur d'api incorrecte");
-      await delay(5000); // Ajoute un délai de 5 secondes avant de rappeler update
+      await delay(30000); // Ajoute un délai de 30 secondes avant de rappeler update
       update();
     }
   } catch (error) {
     console.error("Failed to update:", error);
+  } finally {
+    isUpdating = false;
   }
 }
 
