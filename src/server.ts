@@ -46,32 +46,36 @@ async function getTempo(req,res){
  res.send(theResult)
 }
 
+let accessToken: string | null = null;
+let tokenExpirationTime: number | null = null;
+
 async function getToken() : Promise<any>{
+  if (accessToken && tokenExpirationTime && Date.now() < tokenExpirationTime) {
+    console.log("Using cached access token expire at : " + new Date(tokenExpirationTime).toLocaleString('fr-FR', { hour12: false }));
+    return accessToken;
+  }
+
     try{
       const myHeaders = new Headers();
       myHeaders.append('Content-Type', 'application/x-www-form-urlencoded');
-      myHeaders.append('Authorization', 'Basic '+ privateApiKey);
-      //the URL of the website to which the content must be posted is passed as a parameter to the fetch function along with specifying the method, body and header
-      let response = await fetch('https://digital.iservices.rte-france.com/token/oauth/', {
-          method: 'POST',
-          credentials: 'include',
-          headers: myHeaders,
-          })
-          .then(response=>response.json())
-          .then(response => { console.log(response); return response; })
-          .then((rese:any)=> rese["access_token"])
-      return await response;
-  }catch (error) {
-    if (error instanceof Error) {
-      console.log(error);
-      getToken()
-      console.log('error message: ', error.message);
-      return error.message;
-    } else {
-      console.log('unexpected error: ', error);
-      return 'An unexpected error occurred';
+      myHeaders.append('Authorization', 'Basic ' + privateApiKey);
+  
+      const response = await fetch('https://digital.iservices.rte-france.com/token/oauth/', {
+        method: 'POST',
+        credentials: 'include',
+        headers: myHeaders,
+      });
+  
+      const data = await response.json();
+      accessToken = data["access_token"];
+      const expiresIn = data["expires_in"]; // Assuming the response contains an "expires_in" field in seconds
+      tokenExpirationTime = Date.now() + expiresIn * 1000; // Convert to milliseconds
+  
+      return accessToken;
+    } catch (error) {
+      console.error("Error:", error);
+      throw new Error('Failed to obtain access token');
     }
-  }
   
 }
 
@@ -81,8 +85,7 @@ async function getTempoInfo(token: string) : Promise<any>{
     myHeaders.append('Content-Type', 'application/x-www-form-urlencoded');
     myHeaders.append('Authorization',"Bearer " + token);
     const date = new Date().toLocaleString('fr-FR', { hour12: false });
-    console.log('Appel API en cours ...');
-    console.log(date.toLocaleString());
+    console.log('Appel API en cours à '+ date + ' ...');
     let response = await fetch('https://digital.iservices.rte-france.com/open_api/tempo_like_supply_contract/v1/tempo_like_calendars?start_date=' + getDate(true) + "&end_date="+ getDate(false), {
         method: 'GET',
         credentials: 'include',
@@ -130,13 +133,15 @@ async function getTempoInfo(token: string) : Promise<any>{
   }
 }
 
+let isUpdating = false;
+
 async function checkAndUpdate(response: any): Promise<void> {
   console.log("response " ,response);
-  console.dir("response tomorow " + response.tomorow);
     const currentHour = new Date().getHours();
     if (response.tomorow === 0 && currentHour >= 6 && currentHour < 7) {
       console.log("Retrying in 30 seconds...");
       await delay(30000);
+      isUpdating = false;
       update();
     }
 }
@@ -154,15 +159,12 @@ function getDate(startDate:boolean): string{
 
   const timezoneOffset = currentOffset === -120 ? "02:00" : "01:00";
   const followingDayTimezoneOffset = followingDayOffset === -120 ? "02:00" : "01:00";
-  console.log("today offser : " + timezoneOffset + "  tomorow offset : " + followingDayTimezoneOffset);
 
   if(startDate){
     dateString = date.getFullYear() + "-" + (date.getMonth()+1)+ "-" + date.getDate() + "T00:00:00%2B" + timezoneOffset
     console.log("start date : " + dateString);
     return dateString;
   }else{
-    let current = new Date();
-    //TODO: Fix changement
     dateString = followingDay.getFullYear() + "-" + (followingDay.getMonth()+1)+ "-" + (followingDay.getDate()) + "T00:00:00%2B" + followingDayTimezoneOffset
     console.log("End date : " + dateString);
     return dateString;
@@ -173,7 +175,7 @@ function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-let isUpdating = false;
+
 
 async function update(): Promise<void> {
 
@@ -208,4 +210,4 @@ async function update(): Promise<void> {
   }
 }
 
-app.listen(3000, () => console.log('ReTempo Api Serveur V1.3 Started'))
+app.listen(3000, () => console.log('ReTempo Api Serveur V1.4 Started'))
