@@ -6,6 +6,7 @@ import { privateApiKey } from './secrets'
 const app = express()
 const CronJob = require("node-cron");
 let theResult = {today: 0, tomorow: 0, hp: 6, hc: 22};
+let isUpdating = false;
 
 // Blacklist the following IPs
 const ips = ['127.0.0.1']
@@ -18,6 +19,7 @@ app.use(cors())
 let initScheduledJobs = () => {
   const scheduledJobFunctionAtMorning = CronJob.schedule("10 5 6 * * *", () => {
     console.log("Execution tache planifié récupération des données");
+    isUpdating=false;
     update()
   });
   scheduledJobFunctionAtMorning.start();
@@ -133,7 +135,7 @@ async function getTempoInfo(token: string) : Promise<any>{
   }
 }
 
-let isUpdating = false;
+
 
 async function checkAndUpdate(response: any): Promise<void> {
   console.log("response " ,response);
@@ -201,6 +203,7 @@ async function update(): Promise<void> {
     } else {
       console.log("Valeur d'api incorrecte");
       await delay(30000); // Ajoute un délai de 30 secondes avant de rappeler update
+      isUpdating = false;
       update();
     }
   } catch (error) {
