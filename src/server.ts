@@ -59,7 +59,8 @@ async function getToken() : Promise<any>{
 
     try{
       const myHeaders = new Headers();
-      myHeaders.append('Content-Type', 'application/x-www-form-urlencoded');
+      myHeaders.append('Content-Type', 'application/json');
+      myHeaders.append('Accept', 'application/json');
       myHeaders.append('Authorization', 'Basic ' + privateApiKey);
   
       const response = await fetch('https://digital.iservices.rte-france.com/token/oauth/', {
@@ -84,7 +85,8 @@ async function getToken() : Promise<any>{
 async function getTempoInfo(token: string) : Promise<any>{
   try{
     const myHeaders = new Headers();
-    myHeaders.append('Content-Type', 'application/x-www-form-urlencoded');
+    myHeaders.append('Content-Type', 'application/json');
+    myHeaders.append('Accept', 'application/json');
     myHeaders.append('Authorization',"Bearer " + token);
     const date = new Date().toLocaleString('fr-FR', { hour12: false });
     console.log('Appel API en cours à '+ date + ' ...');
