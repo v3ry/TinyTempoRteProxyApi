@@ -1,37 +1,35 @@
 import cors from 'cors'
 import express, { json, Request, Response } from 'express'
-import { get } from 'http'
 import { privateApiKey } from './secrets'
+import cron from 'node-cron' // Changed from require to import
 
 const app = express()
-const CronJob = require("node-cron");
-let theResult = {today: 0, tomorow: 0, hp: 6, hc: 22};
+let theResult: { today: number; tomorow: number; hp: number; hc: number } = { today: 0, tomorow: 0, hp: 6, hc: 22 };
 let isUpdating = false;
 
-// Blacklist the following IPs
-const ips = ['127.0.0.1']
+// Extracted IP blacklist to a constant
+const IP_BLACKLIST: string[] = ['127.0.0.1'];
 
 app.use(express.json())
 app.use(cors())
- 
+
 // Create the server
 
 let initScheduledJobs = () => {
-  const scheduledJobFunctionAtMorning = CronJob.schedule("10 5 6 * * *", () => {
+  const MORNING_SCHEDULE = "10 5 6 * * *";
+  const MIDNIGHT_SCHEDULE = "20 0 23 * * *";
+
+  cron.schedule(MORNING_SCHEDULE, () => {
     console.log("Execution tache planifié récupération des données");
-    isUpdating=false;
-    update()
-  });
-  scheduledJobFunctionAtMorning.start();
+    isUpdating = false;
+    update();
+  }).start();
 
-  const scheduledJobFunctionAtMidnight = CronJob.schedule("20 0 23 * * *", () => {
+  cron.schedule(MIDNIGHT_SCHEDULE, () => {
     console.log("theResult " + theResult);
-    theResult = {today: theResult.tomorow, tomorow: 0, hp: 6, hc: 22};
-  });
-  scheduledJobFunctionAtMidnight.start();
+    theResult = { today: theResult.tomorow, tomorow: 0, hp: 6, hc: 22 };
+  }).start();
 }
-
-
 
 initScheduledJobs();
 
@@ -51,98 +49,76 @@ async function getTempo(req,res){
 let accessToken: string | null = null;
 let tokenExpirationTime: number | null = null;
 
-async function getToken() : Promise<any>{
+async function getToken(): Promise<string> {
   if (accessToken && tokenExpirationTime && Date.now() < tokenExpirationTime) {
     console.log("Using cached access token expire at : " + new Date(tokenExpirationTime).toLocaleString('fr-FR', { hour12: false }));
     return accessToken;
   }
 
-    try{
-      const myHeaders = new Headers();
-      myHeaders.append('Content-Type', 'application/json');
-      myHeaders.append('Accept', 'application/json');
-      myHeaders.append('Authorization', 'Basic ' + privateApiKey);
-  
-      const response = await fetch('https://digital.iservices.rte-france.com/token/oauth/', {
-        method: 'POST',
-        credentials: 'include',
-        headers: myHeaders,
-      });
-  
-      const data = await response.json();
-      accessToken = data["access_token"];
-      const expiresIn = data["expires_in"]; // Assuming the response contains an "expires_in" field in seconds
-      tokenExpirationTime = Date.now() + expiresIn * 1000; // Convert to milliseconds
-  
-      return accessToken;
-    } catch (error) {
-      console.error("Error:", error);
-      throw new Error('Failed to obtain access token');
-    }
-  
-}
+  try {
+    const headers = createHeaders('Basic ' + privateApiKey);
+    const response = await fetch('https://digital.iservices.rte-france.com/token/oauth/', {
+      method: 'POST',
+      credentials: 'include',
+      headers,
+    });
 
-async function getTempoInfo(token: string) : Promise<any>{
-  try{
-    const myHeaders = new Headers();
-    myHeaders.append('Content-Type', 'application/json');
-    myHeaders.append('Accept', 'application/json');
-    myHeaders.append('Authorization',"Bearer " + token);
-    const date = new Date().toLocaleString('fr-FR', { hour12: false });
-    console.log('Appel API en cours à '+ date + ' ...');
-    let response = await fetch('https://digital.iservices.rte-france.com/open_api/tempo_like_supply_contract/v1/tempo_like_calendars?start_date=' + getDate(true) + "&end_date="+ getDate(false), {
-        method: 'GET',
-        credentials: 'include',
-        headers: myHeaders,
-        })
-        .then(response=>response.json())
-        .then(response => { console.log(response); return response; })
-        .then((rese: any) => {
-          if (rese && rese.tempo_like_calendars && rese.tempo_like_calendars.values) {
-              return rese.tempo_like_calendars.values.map(val => val.value);
-          } else {
-              throw new Error("Invalid response structure");
-          }
-      })
-        .then(value=> value.map(toto=> {
-          if(toto == "BLUE"){
-              return 1
-            }else if(toto == "WHITE"){
-              return 2
-            }else if(toto == "RED"){
-              return 3
-            }else{
-              return 0
-            }
-        }))
-        console.log(response.length);
-        if( await response.length == 2){
-          response = {today: response[1], tomorow: response[0], hp: 6, hc: 22}
-          console.log("Today : " + response.today + "  Tomorow : " + response.tomorow);
-        }else{
-          response = {today: response[0], tomorow: 0, hp: 6, hc: 22}
-          console.log("Today : " + response.today);
-        }
-        
-    return await response;
-  }catch (error) {
-    if (error instanceof Error) {
-      console.log("error : " + error);
-      console.log('error message: ', error.message);
-      return error.message;
-    } else {
-      console.log('unexpected error: ', error);
-      return 'An unexpected error occurred';
-    }
+    const data = await response.json();
+    accessToken = data["access_token"];
+    tokenExpirationTime = Date.now() + data["expires_in"] * 1000;
+    return accessToken;
+  } catch (error) {
+    console.error("Error:", error);
+    throw new Error('Failed to obtain access token');
   }
 }
 
+function createHeaders(auth: string): Headers {
+  const headers = new Headers();
+  headers.append('Content-Type', 'application/json');
+  headers.append('Accept', 'application/json');
+  headers.append('Authorization', auth);
+  return headers;
+}
 
+// Refactored getTempoInfo to use async/await
+async function getTempoInfo(token: string): Promise<any> {
+  try {
+    const headers = createHeaders("Bearer " + token);
+    const date = new Date().toLocaleString('fr-FR', { hour12: false });
+    console.log('Appel API en cours à ' + date + ' ...');
+    const response = await fetch(`https://digital.iservices.rte-france.com/open_api/tempo_like_supply_contract/v1/tempo_like_calendars?start_date=${getDate(true)}&end_date=${getDate(false)}`, {
+      method: 'GET',
+      credentials: 'include',
+      headers,
+    });
+    const data = await response.json();
+    console.log(data);
+    const values = data?.tempo_like_calendars?.values?.map((val: any) => val.value) || [];
+    const mapped = values.map((toto: string) => {
+      switch (toto) {
+        case "BLUE": return 1;
+        case "WHITE": return 2;
+        case "RED": return 3;
+        default: return 0;
+      }
+    });
+    console.log(mapped.length);
+    if (mapped.length === 2) {
+      return { today: mapped[1], tomorow: mapped[0], hp: 6, hc: 22 };
+    } else {
+      return { today: mapped[0], tomorow: 0, hp: 6, hc: 22 };
+    }
+  } catch (error: any) {
+    console.error("Error:", error.message || error);
+    return error.message || 'An unexpected error occurred';
+  }
+}
 
 async function checkAndUpdate(response: any): Promise<void> {
   console.log("response " ,response);
     const currentHour = new Date().getHours();
-    if (response.tomorow === 0 && currentHour >= 6 && currentHour < 7) {
+    if (response.tomorow === 0 && currentHour >= 6 && currentHour < 10) {
       console.log("Retrying in 30 seconds...");
       await delay(30000);
       isUpdating = false;
@@ -179,8 +155,6 @@ function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-
-
 async function update(): Promise<void> {
 
   if (isUpdating) {
@@ -215,4 +189,5 @@ async function update(): Promise<void> {
   }
 }
 
-app.listen(3000, () => console.log('ReTempo Api Serveur V1.4 Started'))
+const PORT = 3000;
+app.listen(PORT, () => console.log(`ReTempo Api Serveur V1.4 Started on port ${PORT}`))
